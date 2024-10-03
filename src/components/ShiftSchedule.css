@@ -11,9 +11,13 @@
   margin-bottom: 20px;
 }
 
+.button-group {
+  display: flex;
+}
+
 .manage-employees-btn,
 .manage-shifts-btn,
-.export-button,
+.export-btn,
 .clear-schedule-btn {
   padding: 10px 15px;
   margin-right: 10px;
@@ -27,16 +31,16 @@
 
 .manage-employees-btn:hover,
 .manage-shifts-btn:hover,
-.export-button:hover,
+.export-btn:hover,
 .clear-schedule-btn:hover {
   background-color: #45a049;
 }
 
-.export-button {
+.export-btn {
   background-color: #008CBA;
 }
 
-.export-button:hover {
+.export-btn:hover {
   background-color: #007B9E;
 }
 
@@ -99,9 +103,13 @@ select {
     flex-direction: column;
   }
 
+  .button-group {
+    flex-direction: column;
+  }
+
   .manage-employees-btn,
   .manage-shifts-btn,
-  .export-button,
+  .export-btn,
   .clear-schedule-btn {
     margin-bottom: 10px;
     width: 100%;

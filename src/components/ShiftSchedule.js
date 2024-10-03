@@ -172,12 +172,21 @@ const ShiftSchedule = ({ department, tabId }) => {
   const shiftKey = `${department}-${selectedYear}-${selectedWeek}`;
   const currentShifts = shifts[shiftKey] || [];
 
+  const managementButtonsStyle = {
+    display: 'flex',
+    gap: '10px', // This will create a small gap between the buttons
+  };
+
+  const buttonStyle = {
+    flex: '0 0 auto', // This prevents the buttons from growing or shrinking
+  };
+
   return (
     <div className="shift-schedule">
-      <div className="management-buttons">
-        <button onClick={() => setIsEmployeeModalOpen(true)} className="manage-employees-btn">Manage Employees</button>
-        <button onClick={() => setIsShiftModalOpen(true)} className="manage-shifts-btn">Manage Shifts</button>
-        <button onClick={handleExportSchedule} className="export-btn">Eksporter Vaktliste</button>
+      <div className="management-buttons" style={managementButtonsStyle}>
+        <button onClick={() => setIsEmployeeModalOpen(true)} className="manage-employees-btn" style={buttonStyle}>Ansatte</button>
+        <button onClick={() => setIsShiftModalOpen(true)} className="manage-shifts-btn" style={buttonStyle}>Vakter</button>
+        <button onClick={handleExportSchedule} className="export-btn" style={{...buttonStyle, marginLeft: 'auto'}}>Eksporter Vaktliste</button>
       </div>
       <WeekSelector
         selectedYear={selectedYear}
