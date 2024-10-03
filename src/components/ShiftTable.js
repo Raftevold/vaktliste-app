@@ -3,22 +3,23 @@ import { DragDropContext, Draggable } from 'react-beautiful-dnd';
 import StrictModeDroppable from './StrictModeDroppable';
 
 class ShiftTableComponent extends Component {
-  drawToCanvas = (ctx, startX, startY, width, height) => {
+  drawToCanvas = (ctx, startX, startY, width, height, options = {}) => {
     const { employees, shifts, customShifts, days, weekDates } = this.props;
+    const { employeeColumnWidth = width * 0.2, cellWidth, cellHeight } = options;
     
     // Filter out empty columns
     const nonEmptyDays = days.filter((day, index) => 
       employees.some(employee => shifts?.find(shift => shift?.employeeId === employee.id)?.[day])
     );
 
-    const cellWidth = width / (nonEmptyDays.length + 1);
-    const headerHeight = 50;
-    const cellHeight = (height - headerHeight) / employees.length;
+    const headerHeight = 60;
+    const actualCellWidth = cellWidth || (width - employeeColumnWidth) / nonEmptyDays.length;
+    const actualCellHeight = cellHeight || (height - headerHeight) / employees.length;
 
-    // Set fonts
-    const headerFont = 'bold 14px Arial';
-    const dateFont = '12px Arial';
-    const contentFont = '13px Arial';
+    // Set fonts with larger sizes
+    const headerFont = 'bold 18px Arial';
+    const dateFont = '19px Arial';
+    const contentFont = '19px Arial';
 
     // Draw header
     ctx.fillStyle = '#e0e0e0';
@@ -27,33 +28,39 @@ class ShiftTableComponent extends Component {
     // Draw day names and dates
     ctx.fillStyle = '#333333';
     ctx.font = headerFont;
-    ctx.fillText('Ansatt', startX + 5, startY + 20);
+    ctx.textAlign = 'center';
+    ctx.fillText('Ansatt', startX + employeeColumnWidth / 2, startY + 25);
     
     nonEmptyDays.forEach((day, index) => {
       const dayIndex = days.indexOf(day);
-      const x = startX + cellWidth * (index + 1) + 5;
+      const x = startX + employeeColumnWidth + actualCellWidth * index + actualCellWidth / 2;
       ctx.font = headerFont;
-      ctx.fillText(day, x, startY + 20);
+      ctx.fillText(day, x, startY + 25);
       ctx.font = dateFont;
-      ctx.fillText(weekDates[dayIndex], x, startY + 40);
+      ctx.fillText(weekDates[dayIndex], x, startY + 50);
     });
 
     // Draw rows
     ctx.font = contentFont;
     employees.forEach((employee, rowIndex) => {
-      const y = startY + headerHeight + rowIndex * cellHeight;
+      const y = startY + headerHeight + rowIndex * actualCellHeight;
       ctx.fillStyle = employee.roleColor || '#ffffff';
-      ctx.fillRect(startX, y, width, cellHeight);
+      ctx.fillRect(startX, y, width, actualCellHeight);
+      
+      // Draw employee name
       ctx.fillStyle = '#333333';
-      ctx.fillText(employee.name, startX + 5, y + cellHeight / 2 + 5);
+      ctx.textAlign = 'left';
+      ctx.fillText(employee.name, startX + 5, y + actualCellHeight / 2 + 6);
 
+      // Draw shifts
+      ctx.textAlign = 'center';
       nonEmptyDays.forEach((day, colIndex) => {
-        const x = startX + cellWidth * (colIndex + 1) + 5;
+        const x = startX + employeeColumnWidth + actualCellWidth * colIndex + actualCellWidth / 2;
         const shiftId = shifts?.find(shift => shift?.employeeId === employee.id)?.[day];
         const shift = customShifts?.find(s => s.id === shiftId);
         if (shift) {
           ctx.fillStyle = '#333333';
-          ctx.fillText(shift.shift, x, y + cellHeight / 2 + 5);
+          ctx.fillText(shift.shift, x, y + actualCellHeight / 2 + 6);
         }
       });
     });
@@ -64,15 +71,17 @@ class ShiftTableComponent extends Component {
     ctx.beginPath();
 
     // Vertical lines
-    for (let i = 0; i <= nonEmptyDays.length + 1; i++) {
-      const x = startX + i * cellWidth;
+    ctx.moveTo(startX + employeeColumnWidth, startY);
+    ctx.lineTo(startX + employeeColumnWidth, startY + headerHeight + employees.length * actualCellHeight);
+    for (let i = 1; i <= nonEmptyDays.length; i++) {
+      const x = startX + employeeColumnWidth + i * actualCellWidth;
       ctx.moveTo(x, startY);
-      ctx.lineTo(x, startY + headerHeight + employees.length * cellHeight);
+      ctx.lineTo(x, startY + headerHeight + employees.length * actualCellHeight);
     }
 
     // Horizontal lines
     for (let i = 0; i <= employees.length; i++) {
-      const y = startY + headerHeight + i * cellHeight;
+      const y = startY + headerHeight + i * actualCellHeight;
       ctx.moveTo(startX, y);
       ctx.lineTo(startX + width, y);
     }

@@ -12,16 +12,21 @@ const exportSchedule = async (shiftTableRef, selectedWeek, selectedYear, comment
   const scale = 2; // Increase scale for better quality
   const headerHeight = 80;
   const footerHeight = 150;
+  const employeeColumnWidth = 100; // Reduced width for employee column
   const cellWidth = 120;
   const cellHeight = 40;
+  const commentLeftMargin = 20;
+  const commentRightMargin = 20;
+  const commentTopMargin = 50; // Added margin above the comment section
 
-  const contentWidth = Math.max(800, cellWidth * (nonEmptyDays.length + 1));
+  // Calculate the exact width needed for the shift table
+  const tableWidth = employeeColumnWidth + cellWidth * nonEmptyDays.length;
   const contentHeight = cellHeight * (employees.length + 1); // +1 for the header row
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  canvas.width = contentWidth * scale;
-  canvas.height = (headerHeight + contentHeight + footerHeight) * scale;
+  canvas.width = tableWidth * scale;
+  canvas.height = (headerHeight + contentHeight + footerHeight + commentTopMargin) * scale;
   ctx.scale(scale, scale);
 
   // Set background
@@ -29,11 +34,11 @@ const exportSchedule = async (shiftTableRef, selectedWeek, selectedYear, comment
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw header
-  const gradient = ctx.createLinearGradient(0, 0, contentWidth, 0);
+  const gradient = ctx.createLinearGradient(0, 0, tableWidth, 0);
   gradient.addColorStop(0, '#4a4a4a');
   gradient.addColorStop(1, '#2a2a2a');
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, contentWidth, headerHeight);
+  ctx.fillRect(0, 0, tableWidth, headerHeight);
 
   // Draw logo in header
   const logo = new Image();
@@ -51,19 +56,26 @@ const exportSchedule = async (shiftTableRef, selectedWeek, selectedYear, comment
 
     // Draw shift table
     if (shiftTableRef.current && shiftTableRef.current.drawToCanvas) {
-      shiftTableRef.current.drawToCanvas(ctx, 0, headerHeight, contentWidth, contentHeight);
+      shiftTableRef.current.drawToCanvas(ctx, 0, headerHeight, tableWidth, contentHeight, {
+        employeeColumnWidth,
+        cellWidth,
+        cellHeight,
+        nonEmptyDays
+      });
     }
 
     // Draw comment
-    const commentY = headerHeight + contentHeight + 30;
+    const commentY = headerHeight + contentHeight + commentTopMargin;
     ctx.fillStyle = '#4a4a4a';
-    ctx.font = 'bold 16px Arial';
-    ctx.fillText('Kommentar:', 20, commentY);
-    ctx.font = '14px Arial';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('Kommentar:', commentLeftMargin, commentY);
+    ctx.font = '16px Arial';
     ctx.fillStyle = '#000000';
-    const commentLines = getLines(ctx, comment, contentWidth - 40);
+    const commentWidth = tableWidth - commentLeftMargin - commentRightMargin;
+    const commentLines = getLines(ctx, comment, commentWidth);
     commentLines.forEach((line, index) => {
-      ctx.fillText(line, 20, commentY + 25 + index * 20);
+      ctx.fillText(line, commentLeftMargin, commentY + 25 + index * 20);
     });
 
     // Convert canvas to JPEG and trigger download
