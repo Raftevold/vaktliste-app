@@ -5,6 +5,7 @@ import { ShiftProvider } from './ShiftContext';
 import IsehaugKafeteriaLogo from './images/IsehaugKafeteria.png';
 import JohansPubLogo from './images/JohansPub.png';
 import LoginScreen from './components/LoginScreen';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const [department, setDepartment] = useState('Isehaug Kafeteria');
@@ -23,28 +24,30 @@ function App() {
   }
 
   return (
-    <ShiftProvider>
-      <div className="App">
-        <header className="App-header">
-          <div className="header-content">
-            <img src={getLogo()} alt={`${department} logo`} className="department-logo" />
-            <h1 className="app-title">Vaktplanlegging</h1>
-            <div className="department-selector">
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-              >
-                <option value="Isehaug Kafeteria">Isehaug Kafeteria</option>
-                <option value="Johans Pub">Johans Pub</option>
-              </select>
+    <ErrorBoundary>
+      <ShiftProvider>
+        <div className="App">
+          <header className="App-header">
+            <div className="header-content">
+              <img src={getLogo()} alt={`${department} logo`} className="department-logo" />
+              <h1 className="app-title">Vaktplanlegging</h1>
+              <div className="department-selector">
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                >
+                  <option value="Isehaug Kafeteria">Isehaug Kafeteria</option>
+                  <option value="Johans Pub">Johans Pub</option>
+                </select>
+              </div>
             </div>
-          </div>
-        </header>
-        <main>
-          <TabSystem department={department} />
-        </main>
-      </div>
-    </ShiftProvider>
+          </header>
+          <main>
+            <TabSystem department={department} />
+          </main>
+        </div>
+      </ShiftProvider>
+    </ErrorBoundary>
   );
 }
 

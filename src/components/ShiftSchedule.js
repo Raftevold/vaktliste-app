@@ -7,7 +7,7 @@ import ShiftManagementModal from './ShiftManagementModal';
 import WeekSelector from './WeekSelector';
 import ShiftTable from './ShiftTable';
 import CommentSection from './CommentSection';
-import { getWeekNumber, getDateOfISOWeek, formatDate } from '../utils/dateUtils';
+import { getWeekNumber, getDateOfISOWeek, formatDate, getSafe } from '../utils/dateUtils';
 import { useShiftContext } from '../ShiftContext';
 import exportSchedule from './ExportSchedule';
 
@@ -63,14 +63,14 @@ const ShiftSchedule = ({ department, tabId }) => {
       return 0;
     }
     const shiftKey = `${department}-${selectedYear}-${selectedWeek}`;
-    const employeeShift = shifts[shiftKey]?.find(shift => shift.employeeId === employee.id);
+    const employeeShift = getSafe(() => shifts[shiftKey].find(shift => shift.employeeId === employee.id), null);
     if (!employeeShift) return 0;
 
     return days.reduce((total, day) => {
-      const shiftId = employeeShift[day];
-      const shift = customShifts.find(s => s.id === shiftId);
+      const shiftId = getSafe(() => employeeShift[day], null);
+      const shift = getSafe(() => customShifts.find(s => s.id === shiftId), null);
       if (shift && !shift.isTextShift) {
-        const [start, end] = shift.shift.split('-').map(Number);
+        const [start, end] = getSafe(() => shift.shift.split('-').map(Number), [0, 0]);
         let hours;
         if (end < start) {
           // Shift goes past midnight
@@ -170,7 +170,7 @@ const ShiftSchedule = ({ department, tabId }) => {
   }
 
   const shiftKey = `${department}-${selectedYear}-${selectedWeek}`;
-  const currentShifts = shifts[shiftKey] || [];
+  const currentShifts = getSafe(() => shifts[shiftKey], []);
 
   const managementButtonsStyle = {
     display: 'flex',
@@ -194,7 +194,7 @@ const ShiftSchedule = ({ department, tabId }) => {
         setSelectedYear={setSelectedYear}
         setSelectedWeek={setSelectedWeek}
       />
-      {employees.length > 0 ? (
+      {employees && employees.length > 0 ? (
         <ShiftTable
           ref={shiftTableRef}
           employees={employees}

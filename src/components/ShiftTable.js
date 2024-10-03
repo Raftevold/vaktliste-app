@@ -1,20 +1,29 @@
 import React, { Component } from 'react';
 import { DragDropContext, Draggable } from 'react-beautiful-dnd';
 import StrictModeDroppable from './StrictModeDroppable';
+import { getSafe } from '../utils/dateUtils';
 
 class ShiftTableComponent extends Component {
   drawToCanvas = (ctx, startX, startY, width, height, options = {}) => {
     const { employees, shifts, customShifts, days, weekDates } = this.props;
     const { employeeColumnWidth = width * 0.2, cellWidth, cellHeight } = options;
     
+    // Ensure all required props are available
+    if (!employees || !shifts || !customShifts || !days || !weekDates) {
+      console.error('Missing required props in ShiftTable');
+      return;
+    }
+
     // Filter out empty columns
-    const nonEmptyDays = days.filter((day, index) => 
-      employees.some(employee => shifts?.find(shift => shift?.employeeId === employee.id)?.[day])
+    const nonEmptyDays = days.filter((day) => 
+      employees.some((employee) => 
+        getSafe(() => shifts.find(shift => shift.employeeId === employee.id)?.[day], undefined) !== undefined
+      )
     );
 
     const headerHeight = 60;
-    const actualCellWidth = cellWidth || (width - employeeColumnWidth) / nonEmptyDays.length;
-    const actualCellHeight = cellHeight || (height - headerHeight) / employees.length;
+    const actualCellWidth = cellWidth || (width - employeeColumnWidth) / (nonEmptyDays.length || 1);
+    const actualCellHeight = cellHeight || (height - headerHeight) / (employees.length || 1);
 
     // Set fonts with larger sizes
     const headerFont = 'bold 18px Arial';
@@ -32,12 +41,14 @@ class ShiftTableComponent extends Component {
     ctx.fillText('Ansatt', startX + employeeColumnWidth / 2, startY + 25);
     
     nonEmptyDays.forEach((day, index) => {
-      const dayIndex = days.indexOf(day);
-      const x = startX + employeeColumnWidth + actualCellWidth * index + actualCellWidth / 2;
-      ctx.font = headerFont;
-      ctx.fillText(day, x, startY + 25);
-      ctx.font = dateFont;
-      ctx.fillText(weekDates[dayIndex], x, startY + 50);
+      const dayIndex = getSafe(() => days.indexOf(day), -1);
+      if (dayIndex !== -1) {
+        const x = startX + employeeColumnWidth + actualCellWidth * index + actualCellWidth / 2;
+        ctx.font = headerFont;
+        ctx.fillText(day, x, startY + 25);
+        ctx.font = dateFont;
+        ctx.fillText(getSafe(() => weekDates[dayIndex], ''), x, startY + 50);
+      }
     });
 
     // Draw rows
@@ -50,17 +61,17 @@ class ShiftTableComponent extends Component {
       // Draw employee name
       ctx.fillStyle = '#333333';
       ctx.textAlign = 'left';
-      ctx.fillText(employee.name, startX + 5, y + actualCellHeight / 2 + 6);
+      ctx.fillText(employee.name || '', startX + 5, y + actualCellHeight / 2 + 6);
 
       // Draw shifts
       ctx.textAlign = 'center';
       nonEmptyDays.forEach((day, colIndex) => {
         const x = startX + employeeColumnWidth + actualCellWidth * colIndex + actualCellWidth / 2;
-        const shiftId = shifts?.find(shift => shift?.employeeId === employee.id)?.[day];
-        const shift = customShifts?.find(s => s.id === shiftId);
+        const shiftId = getSafe(() => shifts.find(shift => shift.employeeId === employee.id)?.[day], undefined);
+        const shift = getSafe(() => customShifts.find(s => s.id === shiftId), undefined);
         if (shift) {
           ctx.fillStyle = '#333333';
-          ctx.fillText(shift.shift, x, y + actualCellHeight / 2 + 6);
+          ctx.fillText(shift.shift || '', x, y + actualCellHeight / 2 + 6);
         }
       });
     });
@@ -100,6 +111,12 @@ class ShiftTableComponent extends Component {
   render() {
     const { employees, shifts, customShifts, days, weekDates, updateShift, calculateTotalHours, onDragEnd } = this.props;
 
+    // Ensure all required props are available
+    if (!employees || !shifts || !customShifts || !days || !weekDates) {
+      console.error('Missing required props in ShiftTable');
+      return null;
+    }
+
     return (
       <DragDropContext onDragEnd={onDragEnd}>
         <StrictModeDroppable droppableId="employees">
@@ -112,15 +129,15 @@ class ShiftTableComponent extends Component {
                     <th key={day}>
                       {day}
                       <br />
-                      <span className="date">{weekDates[index]}</span>
+                      <span className="date">{getSafe(() => weekDates[index], '')}</span>
                     </th>
                   ))}
                   <th>Timer</th>
                 </tr>
               </thead>
               <tbody>
-                {employees?.map((employee, index) => (
-                  <Draggable key={employee.id} draggableId={employee.id} index={index}>
+                {employees.map((employee, index) => (
+                  <Draggable key={getSafe(() => employee.id, `employee-${index}`)} draggableId={getSafe(() => employee.id, `employee-${index}`)} index={index}>
                     {(provided, snapshot) => (
                       <tr
                         ref={provided.innerRef}
@@ -130,26 +147,26 @@ class ShiftTableComponent extends Component {
                           ...provided.draggableProps.style,
                           backgroundColor: snapshot.isDragging
                             ? '#f0f0f0'
-                            : employee.roleColor || '#ffffff'
+                            : getSafe(() => employee.roleColor, '#ffffff')
                         }}
                       >
-                        <td>{employee.name}</td>
+                        <td>{getSafe(() => employee.name, '')}</td>
                         {days.map(day => (
-                          <td key={`${employee.id}-${day}`}>
+                          <td key={`${getSafe(() => employee.id, `employee-${index}`)}-${day}`}>
                             <select
-                              value={shifts?.find(shift => shift?.employeeId === employee.id)?.[day] || ''}
+                              value={getSafe(() => shifts.find(shift => shift.employeeId === employee.id)?.[day], '')}
                               onChange={(e) => updateShift(employee.id, day, e.target.value)}
                             >
                               <option value=""></option>
-                              {customShifts?.map(shift => (
-                                <option key={shift.id} value={shift.id}>
-                                  {shift.shift}
+                              {customShifts.map(shift => (
+                                <option key={getSafe(() => shift.id, `shift-${shift.shift}`)} value={getSafe(() => shift.id, '')}>
+                                  {getSafe(() => shift.shift, '')}
                                 </option>
                               ))}
                             </select>
                           </td>
                         ))}
-                        <td>{calculateTotalHours(employee).toFixed(1)}</td>
+                        <td>{getSafe(() => calculateTotalHours(employee).toFixed(1), '0.0')}</td>
                       </tr>
                     )}
                   </Draggable>

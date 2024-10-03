@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from './firebase';
-import { collection, query, where, getDocs, doc, getDoc, writeBatch, setDoc, updateDoc } from 'firebase/firestore';
-import { getWeekNumber, sortShifts } from './utils/dateUtils';
+import { collection, query, where, getDocs, doc, getDoc, writeBatch, setDoc, updateDoc, addDoc } from 'firebase/firestore';
+import { getWeekNumber, sortShifts, getSafe } from './utils/dateUtils';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const ShiftContext = createContext();
 
@@ -64,7 +65,7 @@ export const ShiftProvider = ({ children }) => {
       const shiftKey = `${department}-${selectedYear}-${selectedWeek}`;
       
       setShifts(prevShifts => {
-        const currentShifts = prevShifts[shiftKey] ?? [];
+        const currentShifts = getSafe(() => prevShifts[shiftKey], []);
         let employeeShift = currentShifts.find(shift => shift?.employeeId === employeeId);
         
         if (employeeShift) {
@@ -76,7 +77,9 @@ export const ShiftProvider = ({ children }) => {
 
           // Update in Firestore
           const shiftRef = doc(db, "employeeShifts", employeeShift.id);
-          updateDoc(shiftRef, { [day]: shiftId });
+          updateDoc(shiftRef, { [day]: shiftId }).catch(updateError => {
+            setError("Failed to update shift in Firestore. Please try again.");
+          });
 
           return {
             ...prevShifts,
@@ -92,7 +95,13 @@ export const ShiftProvider = ({ children }) => {
           };
 
           // Add to Firestore
-          setDoc(doc(collection(db, "employeeShifts")), newShift);
+          addDoc(collection(db, "employeeShifts"), newShift)
+            .then((docRef) => {
+              newShift.id = docRef.id;
+            })
+            .catch((addError) => {
+              setError("Failed to add new shift to Firestore. Please try again.");
+            });
 
           return {
             ...prevShifts,
@@ -131,7 +140,7 @@ export const ShiftProvider = ({ children }) => {
 
   const getShiftsForWeek = useCallback((department, selectedYear, selectedWeek) => {
     const shiftKey = `${department}-${selectedYear}-${selectedWeek}`;
-    return shifts[shiftKey] ?? [];
+    return getSafe(() => shifts[shiftKey], []);
   }, [shifts]);
 
   const value = useMemo(() => ({
@@ -148,5 +157,9 @@ export const ShiftProvider = ({ children }) => {
     getShiftsForWeek
   }), [shifts, employees, customShifts, error, loading, fetchEmployeesAndShifts, updateShift, reorderEmployees, clearShifts, getShiftsForWeek]);
 
-  return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;
+  return (
+    <ErrorBoundary>
+      <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>
+    </ErrorBoundary>
+  );
 };

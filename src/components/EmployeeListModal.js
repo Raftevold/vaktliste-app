@@ -3,12 +3,6 @@ import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, doc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import './EmployeeListModal.css';
 
-// Simple logging function
-const log = (message, type = 'info') => {
-  const timestamp = new Date().toISOString();
-  console[type](`[${timestamp}] EmployeeListModal: ${message}`);
-};
-
 const EmployeeListModal = ({ isOpen, onClose, department }) => {
   const [newEmployee, setNewEmployee] = useState({ name: '', role: '' });
   const [error, setError] = useState(null);
@@ -16,7 +10,6 @@ const EmployeeListModal = ({ isOpen, onClose, department }) => {
   const [loading, setLoading] = useState(false);
 
   const fetchEmployees = useCallback(async () => {
-    log(`Fetching employees for department: ${department}`);
     setLoading(true);
     setError(null);
     try {
@@ -32,9 +25,7 @@ const EmployeeListModal = ({ isOpen, onClose, department }) => {
         rolesData[employee.role].employees.push(employee);
       });
       setRoles(rolesData);
-      log(`Fetched ${employeesData.length} employees`);
     } catch (err) {
-      log(`Error fetching employees: ${err.message}`, 'error');
       setError(`Failed to fetch employees: ${err.message}`);
     } finally {
       setLoading(false);
@@ -54,7 +45,6 @@ const EmployeeListModal = ({ isOpen, onClose, department }) => {
 
   const addEmployee = async (e) => {
     e.preventDefault();
-    log(`Adding new employee: ${newEmployee.name}, role: ${newEmployee.role}`);
     setError(null);
     try {
       await addDoc(collection(db, "employees"), {
@@ -64,31 +54,25 @@ const EmployeeListModal = ({ isOpen, onClose, department }) => {
         isActive: true
       });
       setNewEmployee({ name: '', role: '' });
-      log(`Employee ${newEmployee.name} added successfully`);
       fetchEmployees();
     } catch (err) {
-      log(`Error adding employee: ${err.message}`, 'error');
       setError(`Failed to add employee: ${err.message}`);
     }
   };
 
   const deleteEmployee = async (employeeId) => {
     if (window.confirm("Are you sure you want to delete this employee? This action cannot be undone.")) {
-      log(`Deleting employee with ID: ${employeeId}`);
       setError(null);
       try {
         await deleteDoc(doc(db, "employees", employeeId));
-        log(`Employee with ID ${employeeId} deleted successfully`);
         fetchEmployees();
       } catch (err) {
-        log(`Error deleting employee: ${err.message}`, 'error');
         setError(`Failed to delete employee: ${err.message}`);
       }
     }
   };
 
   const updateRoleColor = async (role, color) => {
-    log(`Updating color for role: ${role} to ${color}`);
     setError(null);
     try {
       const batch = writeBatch(db);
@@ -98,24 +82,19 @@ const EmployeeListModal = ({ isOpen, onClose, department }) => {
         batch.update(doc.ref, { roleColor: color });
       });
       await batch.commit();
-      log(`Color updated successfully for role: ${role}`);
       fetchEmployees();
     } catch (err) {
-      log(`Error updating role color: ${err.message}`, 'error');
       setError(`Failed to update role color: ${err.message}`);
     }
   };
 
   const toggleEmployeeStatus = async (employeeId, currentStatus) => {
-    log(`Toggling status for employee ID: ${employeeId}`);
     setError(null);
     try {
       const employeeRef = doc(db, "employees", employeeId);
       await updateDoc(employeeRef, { isActive: !currentStatus });
-      log(`Status toggled successfully for employee ID: ${employeeId}`);
       fetchEmployees();
     } catch (err) {
-      log(`Error toggling employee status: ${err.message}`, 'error');
       setError(`Failed to update employee status: ${err.message}`);
     }
   };
